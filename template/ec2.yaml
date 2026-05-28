@@ -1,8 +1,7 @@
 AWSTemplateFormatVersion: "2010-09-09"
-Description: EC2 creada desde GitHub Actions
+Description: EC2 creada desde GitHub Actions con Grupo de Seguridad HTTP corregido
 
 Resources:
-  # 1. CREAMOS EL GRUPO DE SEGURIDAD
   MySecurityGroup:
     Type: AWS::EC2::SecurityGroup
     Properties:
@@ -11,9 +10,13 @@ Resources:
         - IpProtocol: tcp
           FromPort: 80
           ToPort: 80
-          CidrIp: 0.0.0.0/0 # Abre el puerto 80 para cualquier IP en internet
-          # Vinculamos el grupo de seguridad de arriba a esta instancia
-      SecurityGroups: -!Ref MySecurityGroup
+          CidrIp: 0.0.0.0/0
+        # Agregamos SSH por si acaso necesitas revisar la máquina luego
+        - IpProtocol: tcp
+          FromPort: 22
+          ToPort: 22
+          CidrIp: 0.0.0.0/0
+
   MyEC2:
     Type: AWS::EC2::Instance
     Properties:
@@ -21,21 +24,17 @@ Resources:
       ImageId: ami-0cca150d127c2216f
       InstanceType: t3.micro
 
-      # ─── AQUÍ ESTÁ TU USER DATA BIEN ENCAJADO ───
+      # CAMBIO AQUÍ: Usamos la sintaxis completa Fn::GetAtt para evitar el error de tag
+      SecurityGroupIds:
+        - Fn::GetAtt: [MySecurityGroup, GroupId]
+
       UserData:
         Fn::Base64: |
           #!/bin/bash
-          # Actualizar paquetes del sistema
           yum update -y
-
-          # Instalar el servidor web Apache
           yum install -y httpd
-
-          # Iniciar Apache y hacer que encienda automáticamente con la EC2
           systemctl start httpd
           systemctl enable httpd
-
-          # Crear una página web de prueba básica
           echo "<h1>¡Servidor Web Activo! Desplegado desde GitHub Actions</h1>" > /var/www/html/index.html
 
       Tags:
