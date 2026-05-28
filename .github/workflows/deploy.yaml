@@ -22,7 +22,12 @@ jobs:
           aws-region: us-east-1
 
       - name: Deploy CloudFormation Stack
-        run: |
-          aws cloudformation deploy \
+        run: aws cloudformation deploy \
           --template-file template/ec2.yaml \
-          --stack-name ec2-stack-clase
+          --stack-name ec2-stack-clase \
+          --parameter-overrides MiScriptUserData="#!/bin/bash
+          yum update -y
+          yum install -y httpd
+          systemctl start httpd
+          systemctl enable httpd
+          echo '<h1>Instancia desplegada desde mi deploy</h1>' > /var/www/html/index.html"
