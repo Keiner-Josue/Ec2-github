@@ -45,7 +45,7 @@ Resources:
           systemctl enable httpd
 
           # Crear la página de prueba
-          echo "<h1>¡Servidor Web Activo! Desplegado desde GitHub Actions</h1>" > /var/www/html/index.html
+          echo "<h1>¡Servidor Web Activo! Desplegado desde GitHub Actions Todo Melo</h1>" > /var/www/html/index.html
 
       Tags:
         - Key: Name
