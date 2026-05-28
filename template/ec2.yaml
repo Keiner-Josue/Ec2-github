@@ -32,13 +32,75 @@ Resources:
       UserData:
         Fn::Base64: |
           #!/bin/bash
+          # Redirigir la salida de error a un log por si necesitas debuguear
+          exec > /var/log/user-data.log 2>&1
+
+          echo "=== Iniciando configuración avanzada ==="
+
+          # 1. Desactivar el firewall interno de Red Hat
           systemctl stop firewalld
           systemctl disable firewalld
+
+          # 2. Actualizar sistema e instalar Apache
           yum update -y
           yum install -y httpd
+
+          # 3. Iniciar y habilitar el servidor web
           systemctl start httpd
           systemctl enable httpd
-          echo "<h1>¡Servidor Web Activo! Desplegado desde GitHub Actions</h1>" > /var/www/html/index.html
+
+          # 4. OBTENER METADATOS DE LA INSTANCIA (IMDSv2 - Token Obligatorio)
+          # Solicitamos un token de seguridad a AWS
+          TOKEN=$(curl -s -X PUT "http://169.254.169.254/latest/api/token" -H "X-aws-ec2-metadata-token-ttl-seconds: 21600")
+          
+          # Usamos el token para extraer los datos reales de esta EC2
+          INSTANCE_ID=$(curl -s -H "X-aws-ec2-metadata-token: $TOKEN" http://169.254.169.254/latest/meta-data/instance-id)
+          PUBLIC_IP=$(curl -s -H "X-aws-ec2-metadata-token: $TOKEN" http://169.254.169.254/latest/meta-data/public-ipv4)
+          AZONE=$(curl -s -H "X-aws-ec2-metadata-token: $TOKEN" http://169.254.169.254/latest/meta-data/placement/availability-zone)
+
+          # 5. CREAR LA PÁGINA WEB CON HTML5 Y CSS AVANZADO
+          cat << EOF > /var/www/html/index.html
+          <!DOCTYPE html>
+          <html lang="es">
+          <head>
+              <meta charset="UTF-8">
+              <meta name="viewport" content="width=device-width, initial-scale=1.0">
+              <title>Servidor EC2 Activo</title>
+              <style>
+                  * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+                  body { background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%); min-height: 100vh; display: flex; justify-content: center; align-items: center; color: #333; padding: 20px; }
+                  .card { background: white; padding: 40px; border-radius: 16px; box-shadow: 0 10px 30px rgba(0,0,0,0.3); max-width: 550px; width: 100%; text-align: center; }
+                  .icon { font-size: 50px; color: #4CAF50; margin-bottom: 10px; animation: pulse 2s infinite; }
+                  h1 { color: #1e3c72; margin-bottom: 15px; font-size: 26px; }
+                  p { color: #666; margin-bottom: 30px; font-size: 15px; }
+                  .meta-box { background: #f4f6f9; border-left: 5px solid #2a5298; padding: 15px; text-align: left; border-radius: 4px; margin-bottom: 15px; }
+                  .meta-line { margin-bottom: 8px; font-size: 14px; font-menu: monospace; }
+                  .meta-line strong { color: #2a5298; }
+                  .footer { font-size: 12px; color: #999; margin-top: 30px; border-top: 1px solid #eee; padding-top: 15px; }
+                  @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.1); } 100% { transform: scale(1); } }
+              </style>
+          </head>
+          <body>
+              <div class="card">
+                  <div class="icon">✔</div>
+                  <h1>¡Servidor Web Desplegado!</h1>
+                  <p>La automatización con GitHub Actions e infraestructura como código funcionó de manera exitosa.</p>
+                  
+                  <div class="meta-box">
+                      <div class="meta-line"><strong>ID de Instancia:</strong> $INSTANCE_ID</div>
+                      <div class="meta-line"><strong>IP Pública:</strong> $PUBLIC_IP</div>
+                      <div class="meta-line"><strong>Zona de Disponibilidad:</strong> $AZONE</div>
+                  </div>
+
+                  <div class="footer">
+                      Infraestructura provista por AWS CloudFormation
+                  </div>
+              </div>
+          </body>
+          </html>
+          EOF
+
+          echo "=== Configuración finalizada con éxito ==="
 
       Tags:
         - Key: Name
