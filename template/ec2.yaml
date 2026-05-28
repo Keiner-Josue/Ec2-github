@@ -1,6 +1,5 @@
 AWSTemplateFormatVersion: "2010-09-09"
-Description: Nueva EC2 creada en paralelo desde GitHub Actions
-
+Description: EC2 modificada forzada hoy v3
 Resources:
   MySecurityGroup:
     Type: AWS::EC2::SecurityGroup
